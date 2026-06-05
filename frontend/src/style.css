@@ -1,0 +1,7 @@
+:root { color-scheme: dark; }
+body { margin: 0; background: #0f1115; color: #e6e9ef; font-family: system-ui, sans-serif; }
+#app { max-width: 940px; margin: 24px auto; padding: 0 16px; }
+h1 { font-size: 18px; font-weight: 600; }
+#start { padding: 8px 18px; border: 0; border-radius: 6px; background: #5ad1ff; color: #06222e; font-weight: 600; cursor: pointer; }
+#status { margin: 10px 0; font-size: 13px; color: #8a93a3; }
+#view { width: 100%; background: #171a21; border-radius: 8px; }
