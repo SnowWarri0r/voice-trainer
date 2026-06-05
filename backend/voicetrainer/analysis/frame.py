@@ -22,15 +22,18 @@ class AnalysisResult:
 
 
 def analyze_frame(samples: np.ndarray, sample_rate: int) -> AnalysisResult:
-    """一段 PCM → 完整分析结果。无音高=unvoiced;有音高但共振峰不稳=只给 f0。"""
+    """一段 PCM → 完整分析结果。
+
+    voiced 反映是否测到基频(声带振动);共振峰/共鸣**不**依赖 voiced——
+    气声/耳语没有 F0 但仍有共振峰,照样输出 resonance,这样共鸣训练能在气声上做。
+    纯静音(共振峰也测不到)则只返回 voiced=False。"""
     f0 = estimate_f0(samples, sample_rate)
-    if f0 is None:
-        return AnalysisResult(voiced=False)
     f1, f2 = estimate_formants(samples, sample_rate)
+    voiced = f0 is not None
     if f1 is None or f2 is None:
-        return AnalysisResult(voiced=True, f0=f0)
+        return AnalysisResult(voiced=voiced, f0=f0)
     return AnalysisResult(
-        voiced=True,
+        voiced=voiced,
         f0=f0,
         f1=f1,
         f2=f2,
