@@ -3,10 +3,13 @@ import os
 from dataclasses import asdict
 
 import numpy as np
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
+from voicetrainer.analysis.calibrate import analyze_vowel_recording
 from voicetrainer.analysis.frame import analyze_frame
+from voicetrainer.profiles import Profile, load_active, save
 from voicetrainer.targets import builtin_default
 
 app = FastAPI()
@@ -21,13 +24,49 @@ def health() -> dict:
 
 @app.get("/api/target")
 def target() -> dict:
-    return asdict(builtin_default())
+    return asdict(load_active().target)
+
+
+REQUIRED_VOWELS = {"a", "e", "i", "o", "u"}
+
+
+@app.get("/api/profile")
+def get_profile() -> dict:
+    return load_active().to_dict()
+
+
+class ProfileIn(BaseModel):
+    vowel_templates: dict
+
+
+@app.put("/api/profile")
+def put_profile(payload: ProfileIn) -> dict:
+    vt = payload.vowel_templates
+    if set(vt.keys()) != REQUIRED_VOWELS:
+        raise HTTPException(status_code=400, detail="需要全 5 个元音 a/e/i/o/u")
+    templates = {k: [float(v[0]), float(v[1])] for k, v in vt.items()}
+    profile = Profile(vowel_templates=templates, target=builtin_default(), source="calibrated")
+    save(profile)
+    return profile.to_dict()
+
+
+@app.post("/api/calibrate")
+async def calibrate(vowel: str, sampleRate: int, request: Request) -> dict:
+    if vowel not in REQUIRED_VOWELS:
+        raise HTTPException(status_code=400, detail="vowel 必须是 a/e/i/o/u 之一")
+    raw = await request.body()
+    samples = np.frombuffer(raw, dtype="<i2").astype(np.float32) / 32768.0
+    result = analyze_vowel_recording(samples, sampleRate)
+    if result is None:
+        return {"retake": True}
+    f1, f2 = result
+    return {"f1": f1, "f2": f2}
 
 
 @app.websocket("/ws")
 async def ws_realtime(websocket: WebSocket) -> None:
     await websocket.accept()
-    profile = builtin_default()
+    profile = load_active()
     sample_rate = 48000
     buf = np.zeros(0, dtype=np.float32)
     try:
@@ -53,9 +92,9 @@ async def ws_realtime(websocket: WebSocket) -> None:
                 buf = buf[-win:]
             if buf.size < win:
                 continue
-            result = analyze_frame(buf, sample_rate)
+            result = analyze_frame(buf, sample_rate, templates=profile.vowel_templates)
             payload = result.to_dict()
-            payload.update(profile.contains(result.f0, result.resonance))
+            payload.update(profile.target.contains(result.f0, result.resonance))
             await websocket.send_text(json.dumps(payload))
     except WebSocketDisconnect:
         return
