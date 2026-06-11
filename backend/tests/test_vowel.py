@@ -40,3 +40,14 @@ def test_known_cell_flip_is_documented():
     # 回归守护:把 'o' 抬 1.15x 当前会被误分类成 'a'(已知 MVP 局限,阶段二修)。
     t1, t2 = VOWEL_TEMPLATES["o"]
     assert classify_vowel(t1 * 1.15, t2 * 1.15) == "a"
+
+
+def test_classify_vowel_uses_passed_templates():
+    custom = {"x": (500.0, 1500.0), "y": (300.0, 2500.0)}
+    assert classify_vowel(510.0, 1490.0, custom) == "x"
+    assert classify_vowel(310.0, 2450.0, custom) == "y"
+
+
+def test_normalized_resonance_zero_at_passed_template():
+    custom = {"x": (600.0, 1400.0)}
+    assert abs(normalized_resonance(600.0, 1400.0, custom)) < 1e-9

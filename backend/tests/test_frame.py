@@ -68,3 +68,14 @@ def test_to_dict_roundtrip_keys():
     res = analyze_frame(np.zeros(1000, dtype=np.float32), 16000)
     d = res.to_dict()
     assert set(d.keys()) == {"voiced", "f0", "f1", "f2", "vowel", "resonance"}
+
+
+def test_analyze_frame_uses_passed_templates():
+    sr = 16000
+    sig = _voiced_vowel(200.0, 800.0, 1200.0, 0.2, sr)
+    base = analyze_frame(sig, sr)
+    assert base.f1 is not None and base.f2 is not None
+    # 以实测共振峰为中心的个人模板 → 该帧共鸣应 ≈ 0
+    custom = {base.vowel: (base.f1, base.f2)}
+    res = analyze_frame(sig, sr, templates=custom)
+    assert res.resonance is not None and abs(res.resonance) < 1e-6
