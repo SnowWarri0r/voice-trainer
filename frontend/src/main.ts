@@ -1,5 +1,6 @@
 import { startCapture, type StopFn } from "./capture";
 import { pushFrame, render, type TargetBand } from "./realtime-view";
+import { runCalibration } from "./calibrate";
 
 const startBtn = document.getElementById("start") as HTMLButtonElement;
 const statusEl = document.getElementById("status") as HTMLDivElement;
@@ -56,6 +57,29 @@ startBtn.addEventListener("click", async () => {
     statusEl.textContent = "正在听…";
   } catch (e) {
     statusEl.textContent = "麦克风打不开,请检查权限";
+  }
+});
+
+const calibrateBtn = document.getElementById("calibrate") as HTMLButtonElement;
+
+calibrateBtn.addEventListener("click", async () => {
+  if (stop) {
+    stop();
+    stop = null;
+    startBtn.textContent = "开始";
+  }
+  calibrateBtn.disabled = true;
+  startBtn.disabled = true;
+  try {
+    await runCalibration((msg) => {
+      statusEl.textContent = msg;
+    });
+    await loadTarget();
+  } catch (e) {
+    statusEl.textContent = "标定出错,请检查麦克风权限。";
+  } finally {
+    calibrateBtn.disabled = false;
+    startBtn.disabled = false;
   }
 });
 
