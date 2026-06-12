@@ -67,7 +67,15 @@ def test_analyze_frame_breathy_has_resonance_without_pitch():
 def test_to_dict_roundtrip_keys():
     res = analyze_frame(np.zeros(1000, dtype=np.float32), 16000)
     d = res.to_dict()
-    assert set(d.keys()) == {"voiced", "f0", "f1", "f2", "vowel", "resonance"}
+    assert set(d.keys()) == {"voiced", "f0", "f1", "f2", "vowel", "resonance", "level"}
+
+
+def test_analyze_frame_reports_level():
+    sr = 16000
+    loud = analyze_frame(_voiced_vowel(200.0, 800.0, 1200.0, 0.2, sr), sr)
+    quiet = analyze_frame(np.zeros(int(sr * 0.2), dtype=np.float32), sr)
+    assert quiet.level == 0.0
+    assert loud.level > quiet.level
 
 
 def test_analyze_frame_uses_passed_templates():

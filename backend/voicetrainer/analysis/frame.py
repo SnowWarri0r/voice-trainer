@@ -16,6 +16,7 @@ class AnalysisResult:
     f2: Optional[float] = None
     vowel: Optional[str] = None
     resonance: Optional[float] = None
+    level: float = 0.0  # 窗口 RMS(音量强度,~0..0.3),给前端调线宽/不透明度
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -28,11 +29,12 @@ def analyze_frame(samples: np.ndarray, sample_rate: int, templates=VOWEL_TEMPLAT
     气声/耳语没有 F0 但仍有共振峰,照样输出 resonance,这样共鸣训练能在气声上做。
     纯静音(共振峰也测不到)则只返回 voiced=False。
     templates 默认内置;传入个人标定模板可让分类/共鸣贴合用户声道。"""
+    level = float(np.sqrt(np.mean(samples.astype(np.float64) ** 2))) if samples.size else 0.0
     f0 = estimate_f0(samples, sample_rate)
     f1, f2 = estimate_formants(samples, sample_rate)
     voiced = f0 is not None
     if f1 is None or f2 is None:
-        return AnalysisResult(voiced=voiced, f0=f0)
+        return AnalysisResult(voiced=voiced, f0=f0, level=level)
     return AnalysisResult(
         voiced=voiced,
         f0=f0,
@@ -40,4 +42,5 @@ def analyze_frame(samples: np.ndarray, sample_rate: int, templates=VOWEL_TEMPLAT
         f2=f2,
         vowel=classify_vowel(f1, f2, templates),
         resonance=normalized_resonance(f1, f2, templates),
+        level=level,
     )

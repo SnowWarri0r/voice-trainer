@@ -10,21 +10,25 @@ const pitchHist: (number | null)[] = [];
 const resHist: (number | null)[] = [];
 const f0InHist: boolean[] = [];
 const resInHist: boolean[] = [];
+const levelHist: number[] = [];
 
 // 显示范围(纵轴映射)
 const F0_LO = 80, F0_HI = 300;        // Hz
 const RES_LO = -0.4, RES_HI = 1.0;     // 八度
+const LEVEL_FULL = 0.25;               // RMS 到此值时线最粗最实(强度满)
 
 export function pushFrame(d: Record<string, any>): void {
   pitchHist.push(d.voiced ? (d.f0 as number) : null);
   resHist.push(typeof d.resonance === "number" ? d.resonance : null);
   f0InHist.push(Boolean(d.f0_in));
   resInHist.push(Boolean(d.resonance_in));
+  levelHist.push(typeof d.level === "number" ? d.level : 0);
   if (pitchHist.length > MAXLEN) {
     pitchHist.shift();
     resHist.shift();
     f0InHist.shift();
     resInHist.shift();
+    levelHist.shift();
   }
 }
 
@@ -76,14 +80,47 @@ function drawTrack(
   ctx.fillStyle = "#8a93a3";
   ctx.font = "11px system-ui";
   ctx.fillText(label, 8, top + 14);
-  // 曲线(逐点上色:该轨在区绿、出区红)
+
+  // 连续轮廓线:逐段连接相邻非空点,无声处断开;
+  // 线宽 + 不透明度跟音量(level)走;在区绿、出区红(按当前点)。
   const step = W / MAXLEN;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  let prevX = 0, prevY = 0, hasPrev = false;
   for (let i = 0; i < hist.length; i++) {
+    const v = hist[i];
+    if (v === null) {
+      hasPrev = false;
+      continue;
+    }
+    const x = i * step;
+    const y = yOf(v);
+    if (hasPrev) {
+      const t = Math.max(0, Math.min(1, levelHist[i] / LEVEL_FULL));
+      ctx.lineWidth = 1.2 + 3.0 * t;
+      ctx.globalAlpha = 0.35 + 0.65 * t;
+      ctx.strokeStyle = inFlags[i] ? "#40c878" : "#ff5a6a";
+      ctx.beginPath();
+      ctx.moveTo(prevX, prevY);
+      ctx.lineTo(x, y);
+      ctx.stroke();
+    }
+    prevX = x;
+    prevY = y;
+    hasPrev = true;
+  }
+  ctx.globalAlpha = 1;
+
+  // 当前位置圆点(最近一个非空点)
+  for (let i = hist.length - 1; i >= 0; i--) {
     const v = hist[i];
     if (v === null) continue;
     const x = i * step;
     const y = yOf(v);
     ctx.fillStyle = inFlags[i] ? "#40c878" : "#ff5a6a";
-    ctx.fillRect(x - 1.5, y - 1.5, 3, 3);
+    ctx.beginPath(); ctx.arc(x, y, 3.8, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.beginPath(); ctx.arc(x, y, 1.5, 0, Math.PI * 2); ctx.fill();
+    break;
   }
 }
