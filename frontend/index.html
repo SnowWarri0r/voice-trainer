@@ -4,16 +4,64 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Voice Trainer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <div id="app">
-      <h1>Voice Trainer · Pitch &amp; Resonance</h1>
-      <button id="start">开始</button>
-      <button id="calibrate">标定</button>
-      <div id="status">点"开始"并允许麦克风</div>
-      <canvas id="view" width="900" height="320"></canvas>
-    </div>
+    <div class="grain" aria-hidden="true"></div>
+    <main id="app">
+      <header class="masthead">
+        <div class="title-block">
+          <h1>Voice&nbsp;Trainer</h1>
+          <p class="tagline">pitch · resonance · real-time</p>
+        </div>
+        <div id="profile-chip" class="chip chip--builtin" title="当前使用的元音模板">
+          <span class="chip-dot"></span><span id="profile-label">通用模板</span>
+        </div>
+      </header>
+
+      <section class="readouts" aria-label="实时读数">
+        <div class="readout">
+          <div class="readout-label">音高 · F0</div>
+          <div class="readout-value"><span id="rd-f0">—</span><span class="unit">Hz</span></div>
+        </div>
+        <div class="readout">
+          <div class="readout-label">共鸣 · RES</div>
+          <div class="readout-value"><span id="rd-res">—</span><span class="unit">oct</span></div>
+        </div>
+        <div class="readout">
+          <div class="readout-label">状态</div>
+          <div class="readout-value state state--idle" id="rd-state">
+            <span class="state-dot"></span><span id="rd-state-text">待机</span>
+          </div>
+        </div>
+        <div class="readout">
+          <div class="readout-label">电平 · LVL</div>
+          <div class="level"><span id="level-fill" class="level-fill"></span></div>
+        </div>
+      </section>
+
+      <section class="scope">
+        <canvas id="view"></canvas>
+        <div id="calib-banner" class="calib-banner" hidden>
+          <span id="calib-text"></span>
+        </div>
+      </section>
+
+      <footer class="controls">
+        <button id="start" class="btn btn--primary">
+          <span class="rec-dot" aria-hidden="true"></span>
+          <span class="btn-label">开始</span>
+        </button>
+        <button id="calibrate" class="btn btn--ghost">标定</button>
+        <p class="hint" id="hint">允许麦克风后开始 · 标定可建立你自己的元音基线</p>
+      </footer>
+    </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
